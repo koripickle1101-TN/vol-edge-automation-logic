@@ -1,0 +1,11 @@
+name: VOL_EDGE_RCM_AUTO
+on: [push]
+jobs:
+  brand-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Identity Injection
+        run: |
+          echo "Kori Nichole Pickle | BSHA 2027"
+          echo "Brand: #FF8200 | #4B4B4B"
