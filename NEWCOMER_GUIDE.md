@@ -1,112 +1,137 @@
-# Newcomer Guide: VOL Summit Automation Logic Hub
+# Newcomer Guide + Mobile Setup Playbook
 
-## What this repository is
-This is a lightweight **RCM (Revenue Cycle Management) automation logic starter pack**. It has two core assets:
-
-1. A SQL schema for intake + eligibility integrity.
-2. A JSON rule engine for denial recovery actions.
-
-Think of it as a “logic layer” you can wire into a larger healthcare operations stack.
+## 1) Objective
+Get a new contributor productive in **under 60 minutes** and prevent accidental branch deletion by setting a safe GitHub ruleset from mobile.
 
 ---
 
-## General structure
+## 2) Step-by-step execution
 
-- `README.md` → mission, branding, and a high-level map of modules.
-- `base_camp_schema.sql` → relational data model and one operational reporting view.
-- `peak_denial_engine.json` → denial-code to action mappings with urgency tiers.
+### A) Understand what this repo contains (fast)
+This repository is a **logic-first RCM automation starter** with two production-relevant assets:
 
-There is no application runtime in this repo yet (no API service, UI, or orchestration scripts). This is intentional: the repo currently focuses on **business logic artifacts**.
+1. `base_camp_schema.sql` → intake + eligibility data model.
+2. `peak_denial_engine.json` → denial code response playbooks.
 
----
+There is no API/UI service yet; this is currently a rules-and-data foundation.
 
-## Important things to understand first
+### B) Learn the architecture in the right order
 
-### 1) Data model intent (`base_camp_schema.sql`)
-- `Patients` stores patient identity basics and created timestamp.
-- `InsuranceProviders` stores payer metadata.
-- `EligibilityAudits` links patients and payers, then records verification outcomes and patient financial responsibility fields.
-- `Intake_Leakage_Report` view surfaces non-verified eligibility events to expose front-end revenue leakage.
+#### Step 1 — SQL data foundation
+Read `base_camp_schema.sql` in this sequence:
+- `Patients`
+- `InsuranceProviders`
+- `EligibilityAudits`
+- `Intake_Leakage_Report` view
 
-Why this matters:
-- Eligibility and demographic errors are a major downstream denial source. This schema captures that “front-door quality” checkpoint.
+Why this order works:
+- It follows relationship flow from patient intake → payer mapping → eligibility outcomes → leakage reporting.
 
-### 2) Denial automation intent (`peak_denial_engine.json`)
-- Uses standardized denial codes (`CO-18`, `CO-16`, `PR-1`).
-- Each code maps to:
-  - reason
-  - automated/semiautomated response
-  - urgency level
-- Includes an explicit 24-hour interception goal.
+#### Step 2 — Denial automation logic
+Read `peak_denial_engine.json` and map each code to operations:
+- CO-18 → duplicate claim recovery pathway
+- CO-16 → missing info remediation pathway
+- PR-1 → patient responsibility pathway
 
-Why this matters:
-- It converts denial handling from ad hoc behavior into deterministic playbooks.
+#### Step 3 — Translate to workflow
+Use this trigger chain:
+1. Intake event stored in SQL.
+2. Eligibility issue flagged by view.
+3. Denial event matched to JSON rule.
+4. Action task generated (work queue/ticket).
+5. Outcome logged for KPI reporting.
 
-### 3) System boundary (what exists vs. what is missing)
-Exists:
-- Data definitions
-- Operational logic map
+### C) Addressing your screenshot workflow (GitHub mobile ruleset)
+Your screenshots show you are configuring **Rulesets** on mobile. Use this exact minimal configuration to protect key branches quickly.
 
-Missing (next build layer):
-- ETL / ingestion
-- Rule execution service
-- Task queue/worklist generator
-- Outcome tracking dashboard
-- Test harness and CI checks
+#### Step 1 — Ruleset name
+Use one of these names:
+- `protect-main-v1`
+- `protect-production-v1`
 
----
+#### Step 2 — Enforcement status
+- Start with **Active** if you are ready now.
+- If testing first, set **Disabled**, save, then switch to Active after validation.
 
-## Fast mental model for newcomers
+#### Step 3 — Target branches
+Tap **Add target** and set one pattern:
+- `main`
 
-Use this sequence to understand the repo quickly:
-1. Start in `README.md` for context.
-2. Read SQL tables in dependency order: `Patients` → `InsuranceProviders` → `EligibilityAudits`.
-3. Review the `Intake_Leakage_Report` view to understand the primary KPI focus.
-4. Read JSON protocols and ask: “what system event should trigger each action?”
-5. Sketch how a claim moves from intake verification to denial-resolution workflow.
+Optional second ruleset for release branches:
+- `release/*`
 
----
+#### Step 4 — Turn on these branch rules (minimum safe profile)
+Enable:
+- ✅ Restrict deletions
+- ✅ Require pull request before merging
+- ✅ Require approvals (1 minimum)
+- ✅ Require status checks to pass (if CI exists)
 
-## What to learn next (high-value path)
+Leave off for now (to avoid friction on early-stage repos):
+- ❌ Require signed commits
+- ❌ Require deployments to succeed
 
-### Track A — Build automation backbone
-1. Add a minimal Python service to load denial rules from JSON.
-2. Build a SQL query that identifies new denial events and applies matching protocol.
-3. Emit actionable tasks (CSV, queue message, or ticket).
+#### Step 5 — Bypass list
+Keep bypass list empty unless strictly needed.
+If needed, add only owner/admin account.
 
-### Track B — Add measurable outcomes
-1. Add fields/tables for:
-   - denial detected timestamp
-   - action executed timestamp
-   - recovered amount
-   - final status
-2. Create KPI views:
-   - 24-hour interception rate
-   - first-pass resolution rate
-   - net collection lift by code
-
-### Track C — Production hardening
-1. Add validation tests for SQL schema + JSON rule shape.
-2. Add CI pipeline checks (lint + schema checks).
-3. Add role-based data access and PHI-safe logging patterns.
+#### Step 6 — Save + test
+1. Save ruleset.
+2. Open a test branch and verify you can still create PRs.
+3. Confirm direct delete/push-to-main is blocked.
 
 ---
 
-## Practical onboarding checklist (first 60 minutes)
-
-- [ ] Load schema into a local MySQL-compatible instance.
-- [ ] Insert 10 synthetic patients, 3 payers, 15 audit rows.
-- [ ] Query `Intake_Leakage_Report` and verify only non-verified rows appear.
-- [ ] Parse `peak_denial_engine.json` and print actions by urgency.
-- [ ] Write one pseudo-workflow: event → rule lookup → action → status update.
+## 3) Tools (free only)
+- GitHub mobile web/app (rulesets + PR workflow)
+- MySQL Community or PostgreSQL (local/free tier)
+- Python 3 (rule-runner prototype)
+- GitHub Actions free tier (basic checks)
+- Metabase OSS (optional KPI dashboard)
 
 ---
 
-## Suggested north-star architecture (simple and scalable)
+## 4) Copy-paste output
 
-- **Database**: MySQL/PostgreSQL for intake + audit facts.
-- **Rules layer**: JSON-backed engine (later migrate to config service).
-- **Automation runtime**: Python worker (cron or queue-triggered).
-- **Observability**: KPI SQL views + lightweight BI dashboard.
+### A) Branch protection profile (copy into your implementation checklist)
+```md
+Ruleset Name: protect-main-v1
+Enforcement: Active
+Target Branches: main
+Rules:
+- Restrict deletions: ON
+- Require pull request: ON
+- Required approvals: 1
+- Require status checks: ON (if CI exists)
+- Require signed commits: OFF
+- Require deployments: OFF
+Bypass list: none
+```
 
-This keeps cost near zero for prototyping while preserving a migration path to enterprise orchestration.
+### B) 60-minute onboarding checklist
+```md
+- [ ] Read README.md for mission + modules
+- [ ] Load base_camp_schema.sql into local DB
+- [ ] Seed sample Patients/InsuranceProviders/EligibilityAudits rows
+- [ ] Run Intake_Leakage_Report and verify non-Verified records only
+- [ ] Parse peak_denial_engine.json and map urgency -> queue priority
+- [ ] Create one pseudo-automation flow: event -> rule -> task -> KPI
+- [ ] Configure protect-main-v1 ruleset on GitHub
+```
+
+### C) Next build sprint (income-generating focus)
+```md
+Sprint Goal: reduce denial rework time and improve collection speed
+1) Build Python worker to load JSON rules
+2) Query new eligibility/denial events every 15 minutes
+3) Auto-create action tasks by urgency
+4) Track 24-hour interception KPI
+5) Publish weekly savings report (hours recovered + $ recovered)
+```
+
+---
+
+## 5) Expected result
+- New contributors understand architecture and system boundaries quickly.
+- Main branch is protected against accidental deletion/unsafe updates.
+- Team has a direct path from static logic files to scalable automation with measurable revenue-cycle impact.
